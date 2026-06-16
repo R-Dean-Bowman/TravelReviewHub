@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2024 July Iceland & Norway Cruise Trip Review - WebPPT Player</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0d0e12;
+            font-family: 'Outfit', sans-serif;
+        }
+        #presentation-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #viewport {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1920px;
+            max-height: 1080px;
+            aspect-ratio: 16 / 9;
+            background: #000;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+        .slide-asset {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: none;
+        }
+        .active {
+            display: block;
+        }
+        #slide-video {
+            z-index: 20;
+            background: transparent;
+        }
+        .hud-overlay {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 17, 23, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            padding: 12px 24px;
+            border-radius: 40px;
+            color: #f3f4f6;
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            opacity: 0.15;
+            transition: opacity 0.3s, transform 0.3s;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .hud-overlay:hover {
+            opacity: 1;
+            transform: translateX(-50%) scale(1.02);
+        }
+        .btn {
+            background: none;
+            border: none;
+            color: #ffffff;
+            font-size: 18px;
+            cursor: pointer;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, transform 0.1s;
+        }
+        .btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .btn:active {
+            transform: scale(0.9);
+        }
+        #slide-counter {
+            font-size: 15px;
+            font-weight: 500;
+            min-width: 80px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
+        .home-btn {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            z-index: 100;
+            background: rgba(15, 17, 23, 0.75);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0.3;
+            transition: opacity 0.3s, transform 0.2s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .home-btn:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+
+<a href="../index.html" class="home-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Dashboard
+</a>
+
+<div id="presentation-container">
+    <div id="viewport" onclick="handleScreenClick(event)">
+        <img id="slide-image" class="slide-asset active" src="" alt="Slide View">
+        <video id="slide-video" class="slide-asset" controls></video>
+    </div>
+
+    <div class="hud-overlay">
+        <button class="btn" onclick="advanceSequence(-1); event.stopPropagation();">◀</button>
+        <div id="slide-counter">1 / 49</div>
+        <button class="btn" onclick="advanceSequence(1); event.stopPropagation();">▶</button>
+    </div>
+</div>
+
+<script>
+    let currentSlide = 1;
+    let isVideoPlaying = false;
+    let currentVideoIndex = -1; // -1 means showing still slide image
+    const totalSlides = 49;
+    const videoMap = {
+        "5": "media1.MOV",
+        "7": "media2.MOV",
+        "9": "media4.MOV",
+        "10": "media6.MOV",
+        "11": "media7.MOV",
+        "16": "media8.MOV",
+        "28": "media9.MOV",
+        "34": "media11.MP4",
+        "35": "media12.MP4",
+        "37": "media13.MP4",
+        "42": "media14.MOV"
+};
+    const slideFiles = ["Slide1.JPG", "Slide2.JPG", "Slide3.JPG", "Slide4.JPG", "Slide5.JPG", "Slide6.JPG", "Slide7.JPG", "Slide8.JPG", "Slide9.JPG", "Slide10.JPG", "Slide11.JPG", "Slide12.JPG", "Slide13.JPG", "Slide14.JPG", "Slide15.JPG", "Slide16.JPG", "Slide17.JPG", "Slide18.JPG", "Slide19.JPG", "Slide20.JPG", "Slide21.JPG", "Slide22.JPG", "Slide23.JPG", "Slide24.JPG", "Slide25.JPG", "Slide26.JPG", "Slide27.JPG", "Slide28.JPG", "Slide29.JPG", "Slide30.JPG", "Slide31.JPG", "Slide32.JPG", "Slide33.JPG", "Slide34.JPG", "Slide35.JPG", "Slide36.JPG", "Slide37.JPG", "Slide38.JPG", "Slide39.JPG", "Slide40.JPG", "Slide41.JPG", "Slide42.JPG", "Slide43.JPG", "Slide44.JPG", "Slide45.JPG", "Slide46.JPG", "Slide47.JPG", "Slide48.JPG", "Slide49.JPG"];
+
+    const imgElement = document.getElementById('slide-image');
+    const videoElement = document.getElementById('slide-video');
+    const counterElement = document.getElementById('slide-counter');
+
+    function renderSlide() {
+        if (counterElement) {
+            counterElement.innerText = currentSlide + " / " + totalSlides;
+        }
+        
+        if (imgElement && slideFiles[currentSlide - 1]) {
+            imgElement.src = slideFiles[currentSlide - 1];
+        }
+        
+        if (videoElement) {
+            videoElement.pause();
+            videoElement.classList.remove('active');
+            videoElement.src = "";
+        }
+        isVideoPlaying = false;
+        currentVideoIndex = -1;
+    }
+
+    function playNextVideo() {
+        let videos = videoMap[currentSlide];
+        if (!videos) return false;
+        if (typeof videos === 'string') {
+            videos = [videos];
+        }
+        if (videos && videos.length > 0) {
+            currentVideoIndex++;
+            if (currentVideoIndex < videos.length) {
+                isVideoPlaying = true;
+                videoElement.src = videos[currentVideoIndex];
+                videoElement.classList.add('active');
+                videoElement.load();
+                videoElement.play().catch(err => {
+                    console.log("Playback error or blocked:", err);
+                    isVideoPlaying = false;
+                });
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function advanceSequence(direction) {
+        if (direction === 1) {
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.classList.remove('active');
+                videoElement.src = "";
+            }
+            isVideoPlaying = false;
+
+            if (playNextVideo()) {
+                return;
+            }
+            currentSlide++;
+        } else {
+            currentSlide--;
+        }
+        
+        if (currentSlide < 1) currentSlide = 1;
+        if (currentSlide > totalSlides) currentSlide = totalSlides;
+        renderSlide();
+    }
+
+    function handleScreenClick(event) {
+        const width = window.innerWidth;
+        if (event.clientX < width / 4) {
+            advanceSequence(-1);
+        } else {
+            advanceSequence(1);
+        }
+    }
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+            advanceSequence(1);
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'Backspace') {
+            advanceSequence(-1);
+        }
+    });
+
+    window.onload = renderSlide;
+</script>
+
+</body>
+</html>
