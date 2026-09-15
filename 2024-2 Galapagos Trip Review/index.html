@@ -129,6 +129,54 @@
             opacity: 1;
             transform: translateY(-2px);
         }
+        .skip-video-btn {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            z-index: 100;
+            background: rgba(124, 58, 237, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            padding: 10px 18px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            display: none;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(124, 58, 237, 0.4);
+            transition: opacity 0.3s, transform 0.2s, background 0.2s;
+        }
+        .skip-video-btn:hover, .skip-video-btn:active {
+            background: rgba(139, 92, 246, 0.95);
+            transform: translateY(-2px);
+        }
+        .skip-video-btn.active {
+            display: inline-flex;
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .hud-overlay {
+                opacity: 0.85;
+                bottom: 20px;
+                padding: 10px 20px;
+                gap: 20px;
+            }
+            .btn {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+            }
+            .home-btn {
+                opacity: 0.85;
+                padding: 10px 16px;
+            }
+            .skip-video-btn {
+                opacity: 0.95;
+            }
+        }
     </style>
 </head>
 <body>
@@ -138,16 +186,21 @@
     Dashboard
 </a>
 
+<button id="skip-video-btn" class="skip-video-btn" onclick="advanceSequence(1); event.stopPropagation();">
+    Next Slide
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+
 <div id="presentation-container">
     <div id="viewport" onclick="handleScreenClick(event)">
         <img id="slide-image" class="slide-asset active" src="" alt="Slide View">
-        <video id="slide-video" class="slide-asset" controls></video>
+        <video id="slide-video" class="slide-asset" playsinline webkit-playsinline controls></video>
     </div>
 
     <div class="hud-overlay">
-        <button class="btn" onclick="advanceSequence(-1); event.stopPropagation();">◀</button>
+        <button class="btn" onclick="advanceSequence(-1); event.stopPropagation();" aria-label="Previous Slide">◀</button>
         <div id="slide-counter">1 / 31</div>
-        <button class="btn" onclick="advanceSequence(1); event.stopPropagation();">▶</button>
+        <button class="btn" onclick="advanceSequence(1); event.stopPropagation();" aria-label="Next Slide">▶</button>
     </div>
 </div>
 
@@ -155,6 +208,7 @@
     let currentSlide = 1;
     let isVideoPlaying = false;
     let currentVideoIndex = -1; // -1 means showing still slide image
+    let ignoreClicksUntil = 0;
     const totalSlides = 31;
     const videoMap = {
         "2": "media1.mp4",
@@ -185,6 +239,7 @@
     const imgElement = document.getElementById('slide-image');
     const videoElement = document.getElementById('slide-video');
     const counterElement = document.getElementById('slide-counter');
+    const skipBtn = document.getElementById('skip-video-btn');
 
     function renderSlide() {
         if (counterElement) {
@@ -199,6 +254,9 @@
             videoElement.pause();
             videoElement.classList.remove('active');
             videoElement.src = "";
+        }
+        if (skipBtn) {
+            skipBtn.classList.remove('active');
         }
         isVideoPlaying = false;
         currentVideoIndex = -1;
@@ -216,10 +274,14 @@
                 isVideoPlaying = true;
                 videoElement.src = videos[currentVideoIndex];
                 videoElement.classList.add('active');
+                if (skipBtn) {
+                    skipBtn.classList.add('active');
+                }
                 videoElement.load();
                 videoElement.play().catch(err => {
                     console.log("Playback error or blocked:", err);
                     isVideoPlaying = false;
+                    if (skipBtn) skipBtn.classList.remove('active');
                 });
                 return true;
             }
@@ -234,6 +296,9 @@
                 videoElement.classList.remove('active');
                 videoElement.src = "";
             }
+            if (skipBtn) {
+                skipBtn.classList.remove('active');
+            }
             isVideoPlaying = false;
 
             if (playNextVideo()) {
@@ -241,6 +306,15 @@
             }
             currentSlide++;
         } else {
+            if (videoElement) {
+                videoElement.pause();
+                videoElement.classList.remove('active');
+                videoElement.src = "";
+            }
+            if (skipBtn) {
+                skipBtn.classList.remove('active');
+            }
+            isVideoPlaying = false;
             currentSlide--;
         }
         
@@ -249,7 +323,44 @@
         renderSlide();
     }
 
+    // When video ends naturally, return to still slide and hide video overlay
+    videoElement.addEventListener('ended', function() {
+        let videos = videoMap[currentSlide];
+        if (typeof videos === 'string') {
+            videos = [videos];
+        }
+        if (videos && currentVideoIndex + 1 < videos.length) {
+            advanceSequence(1);
+        } else {
+            videoElement.pause();
+            videoElement.classList.remove('active');
+            if (skipBtn) {
+                skipBtn.classList.remove('active');
+            }
+            isVideoPlaying = false;
+        }
+    });
+
+    // Absorb ghost clicks emitted when exiting native iOS fullscreen video player
+    function handleFullscreenExit() {
+        ignoreClicksUntil = Date.now() + 800;
+    }
+    videoElement.addEventListener('webkitendfullscreen', handleFullscreenExit);
+    document.addEventListener('fullscreenchange', function() {
+        if (!document.fullscreenElement) {
+            handleFullscreenExit();
+        }
+    });
+
     function handleScreenClick(event) {
+        if (Date.now() < ignoreClicksUntil) {
+            event.stopPropagation();
+            event.preventDefault();
+            return;
+        }
+        if (event.target.closest('.hud-overlay') || event.target.closest('.home-btn') || event.target.closest('button')) {
+            return;
+        }
         const width = window.innerWidth;
         if (event.clientX < width / 4) {
             advanceSequence(-1);
@@ -257,6 +368,39 @@
             advanceSequence(1);
         }
     }
+
+    // Swipe gesture support for iPhone / mobile navigation
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    window.addEventListener('touchstart', function(e) {
+        if (e.touches && e.touches.length === 1) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchStartTime = Date.now();
+        }
+    }, { passive: true });
+
+    window.addEventListener('touchend', function(e) {
+        if (Date.now() < ignoreClicksUntil) return;
+        if (e.changedTouches && e.changedTouches.length === 1) {
+            const deltaX = e.changedTouches[0].clientX - touchStartX;
+            const deltaY = e.changedTouches[0].clientY - touchStartY;
+            const duration = Date.now() - touchStartTime;
+
+            if (Math.abs(deltaX) > 45 && Math.abs(deltaX) > Math.abs(deltaY) * 1.5 && duration < 600) {
+                if (e.target.closest('.hud-overlay') || e.target.closest('.home-btn') || e.target.closest('button')) {
+                    return;
+                }
+                if (deltaX < 0) {
+                    advanceSequence(1);
+                } else {
+                    advanceSequence(-1);
+                }
+            }
+        }
+    }, { passive: true });
 
     window.addEventListener('keydown', function(e) {
         if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
